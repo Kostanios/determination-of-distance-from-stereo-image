@@ -1,24 +1,25 @@
+from PIL import Image
 from PyQt5.QtCore import Qt, QPoint, QRect
-
 from PyQt5.QtGui import QImage, QPixmap, QPalette, QPainter, QPen
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from PyQt5.QtWidgets import QLabel, QSizePolicy, QScrollArea, QMessageBox, QMainWindow, QMenu, QAction, \
-    qApp, QFileDialog, QDockWidget, QTextEdit, QListWidget
+    qApp, QFileDialog, QDockWidget, QListWidget
 from numpy import asarray
-from PIL import Image
+
+from getDelta import get_delta
 
 class QImageViewer(QMainWindow):
     def __init__(self):
         super().__init__()
         self.image = QImage()
         self.imageCopy = QImage()
-        self.imageCopy2 = QImage()
         self.printer = QPrinter()
         self.scaleFactor = 0.0
         self.painter = QPainter()
 
-        pixels = asarray(Image.open('C:/P/cursach_python/assets/left_1.jpg'))
-        print(len(pixels[0]))
+        self.main_img_array = []
+        self.second_img_array = []
+
         self.dockWidget = QDockWidget('Dock', self)
 
         self.imageLabel = QLabel()
@@ -47,7 +48,6 @@ class QImageViewer(QMainWindow):
         self.begin, self.destination = QPoint(), QPoint()
 
     def iMousePressEvent(self, event) -> None:
-        print(event.y())
         if event.buttons() & Qt.LeftButton:
             self.begin = event.pos()
             self.destination = self.begin
@@ -59,12 +59,11 @@ class QImageViewer(QMainWindow):
             self.update()
 
     def iMouseReleaseEvent(self, event) -> None:
+        get_delta(self.begin, self.destination, self.main_img_array, self.second_img_array)
         if event.buttons() & Qt.LeftButton:
             self.destination, self.begin = QPoint(), QPoint()
             self.update()
 
-    def getPos(self, event):
-        print(event.y())
 
     def paintEvent(self, event):
         QMainWindow.paintEvent(self, event)
@@ -74,7 +73,7 @@ class QImageViewer(QMainWindow):
             self.pix = QPixmap.fromImage(self.imageCopy)
 
             painter.drawPixmap(QPoint(), self.pix)
-            painter.setPen(QPen(Qt.black, 5, Qt.SolidLine,
+            painter.setPen(QPen(Qt.black, 1, Qt.SolidLine,
                                 Qt.RoundCap, Qt.RoundJoin))
             painter.drawRect(rect.normalized())
         self.imageLabel.setPixmap(QPixmap.fromImage(self.image))
@@ -84,14 +83,17 @@ class QImageViewer(QMainWindow):
         # fileName = QFileDialog.getOpenFileName(self, "Open File", QDir.currentPath())
         self.fileName, _ = QFileDialog.getOpenFileName(self, 'QFileDialog.getOpenFileName()', '',
                                                   'Images (*.png *.jpeg *.jpg *.bmp *.gif)', options=options)
+        self.fileName2, _ = QFileDialog.getOpenFileName(self, 'QFileDialog.getOpenFileName()', '',
+                                                  'Images (*.png *.jpeg *.jpg *.bmp *.gif)', options=options)
         if self.fileName:
             self.image = QImage(self.fileName)
             self.imageCopy = QImage(self.fileName)
-            self.imageCopy2 = QImage(self.fileName)
-            pixels = asarray(Image.open(self.fileName))
+
             self.painter = QPainter(self.image)
 
-            print(pixels)
+            self.main_img_array = asarray(Image.open(self.fileName))
+            self.second_img_array = asarray(Image.open(self.fileName2))
+
             if self.image.isNull():
                 QMessageBox.information(self, "Image Viewer", "Cannot load %s." % self.fileName)
                 return
