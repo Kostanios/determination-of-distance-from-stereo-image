@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt, QPoint, QRect
 from PyQt5.QtGui import QImage, QPixmap, QPalette, QPainter, QPen
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from PyQt5.QtWidgets import QLabel, QSizePolicy, QScrollArea, QMessageBox, QMainWindow, QMenu, QAction, \
-    qApp, QFileDialog, QDockWidget, QListWidget
+    qApp, QFileDialog, QDockWidget, QListWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QWidget
 from numpy import asarray
 
 from getDelta import get_delta
@@ -20,7 +20,7 @@ class QImageViewer(QMainWindow):
         self.main_img_array = []
         self.second_img_array = []
 
-        self.dockWidget = QDockWidget('Dock', self)
+        self.dockWidget = QDockWidget('info', self)
 
         self.imageLabel = QLabel()
         self.imageLabel.setBackgroundRole(QPalette.Base)
@@ -36,6 +36,13 @@ class QImageViewer(QMainWindow):
         self.scrollArea.setVisible(False)
 
         self.setCentralWidget(self.scrollArea)
+
+        self.focus_edit = QLineEdit()
+        self.matrix_width = QLineEdit()
+        self.matrix_height = QLineEdit()
+        self.camera_delta = QLineEdit()
+        self.submit_camera = QPushButton('submit camera')
+
         self.DockInit()
 
         self.createActions()
@@ -192,15 +199,40 @@ class QImageViewer(QMainWindow):
         self.zoomInAct.setEnabled(self.scaleFactor < 3.0)
         self.zoomOutAct.setEnabled(self.scaleFactor > 0.333)
     def DockInit(self):
-        listWidget = QListWidget()
-        listWidget.addItem('Google')
-        listWidget.addItem('Facebook')
-        listWidget.addItem('Microsoft')
-        listWidget.addItem('Apple')
+        camera_info_widget = QVBoxLayout()
 
-        self.dockWidget.setWidget(listWidget)
+        focus_widget = QHBoxLayout()
+        focus_label = QLabel('focus 1/f')
+        focus_widget.addWidget(focus_label)
+        focus_widget.addWidget(self.focus_edit)
+
+        matrix_width_widget = QHBoxLayout()
+        matrix_width_label = QLabel('matrix width (mm)')
+        matrix_width_widget.addWidget(matrix_width_label)
+        matrix_width_widget.addWidget(self.matrix_width)
+
+        matrix_height_widget = QHBoxLayout()
+        matrix_height_label = QLabel('matrix height (mm)')
+        matrix_height_widget.addWidget(matrix_height_label)
+        matrix_height_widget.addWidget(self.matrix_height)
+
+        camera_delta_widget = QHBoxLayout()
+        camera_delta_label = QLabel('camera delta (mm)')
+        camera_delta_widget.addWidget(camera_delta_label)
+        camera_delta_widget.addWidget(self.camera_delta)
+
+        camera_info_widget.addLayout(focus_widget)
+        camera_info_widget.addLayout(matrix_width_widget)
+        camera_info_widget.addLayout(matrix_height_widget)
+        camera_info_widget.addLayout(camera_delta_widget)
+        camera_info_widget.addWidget(self.submit_camera)
+
+        dockedWidget = QWidget()
+
+        self.dockWidget.setWidget(dockedWidget)
         self.dockWidget.setFloating(False)
         self.addDockWidget(Qt.RightDockWidgetArea, self.dockWidget)
+        dockedWidget.setLayout(camera_info_widget)
 
     def adjustScrollBar(self, scrollBar, factor):
         scrollBar.setValue(int(factor * scrollBar.value()
