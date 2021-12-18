@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QLabel, QSizePolicy, QScrollArea, QMessageBox, QMain
     qApp, QFileDialog, QDockWidget, QListWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QWidget
 from numpy import asarray
 
+from calculateDistance import calculate_distance
 from getDelta import get_delta
 
 class QImageViewer(QMainWindow):
@@ -41,7 +42,10 @@ class QImageViewer(QMainWindow):
         self.matrix_width = QLineEdit()
         self.matrix_height = QLineEdit()
         self.camera_delta = QLineEdit()
-        self.submit_camera = QPushButton('submit camera')
+        self.pixel_size = QLineEdit()
+        self.submit_camera = QPushButton('calculate distance')
+        self.distance = QLabel('undefined')
+        self.submit_camera.mousePressEvent = self.mousePressSubmitCamera
 
         self.DockInit()
 
@@ -53,6 +57,20 @@ class QImageViewer(QMainWindow):
         self.pix = QPixmap()
 
         self.begin, self.destination = QPoint(), QPoint()
+
+        self.pixel_delta = 1
+
+    def mousePressSubmitCamera(self, event) -> None:
+        self.distance.setText(str(calculate_distance(
+            self.camera_delta.text(),
+            self.pixel_delta,
+            self.focus_edit.text(),
+            [
+                self.matrix_width.text(),
+                self.matrix_height.text()
+            ],
+            self.pixel_size.text()
+        )))
 
     def iMousePressEvent(self, event) -> None:
         if event.buttons() & Qt.LeftButton:
@@ -66,7 +84,7 @@ class QImageViewer(QMainWindow):
             self.update()
 
     def iMouseReleaseEvent(self, event) -> None:
-        get_delta(self.begin, self.destination, self.main_img_array, self.second_img_array)
+        self.pixel_delta = get_delta(self.begin, self.destination, self.main_img_array, self.second_img_array)
         if event.buttons() & Qt.LeftButton:
             self.destination, self.begin = QPoint(), QPoint()
             self.update()
@@ -221,10 +239,23 @@ class QImageViewer(QMainWindow):
         camera_delta_widget.addWidget(camera_delta_label)
         camera_delta_widget.addWidget(self.camera_delta)
 
+        pixel_size_widget = QHBoxLayout()
+        pixel_size_label = QLabel('pixel size (mm)')
+        pixel_size_widget.addWidget(pixel_size_label)
+        pixel_size_widget.addWidget(self.pixel_size)
+
+        distance_widget = QHBoxLayout()
+        distance_widget_label = QLabel('distance (mm)')
+        distance_widget.addWidget(distance_widget_label)
+        distance_widget.addWidget(self.distance)
+
+
         camera_info_widget.addLayout(focus_widget)
         camera_info_widget.addLayout(matrix_width_widget)
         camera_info_widget.addLayout(matrix_height_widget)
         camera_info_widget.addLayout(camera_delta_widget)
+        camera_info_widget.addLayout(pixel_size_widget)
+        camera_info_widget.addLayout(distance_widget)
         camera_info_widget.addWidget(self.submit_camera)
 
         dockedWidget = QWidget()
