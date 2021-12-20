@@ -166,8 +166,8 @@ class QImageViewer(QMainWindow):
 
     def about(self):
         QMessageBox.about(self, "About Work",
-                          "<p></p>"
-                          "<p></p>")
+          "<p>the work was done by Konstantin Maksimovich Kotov</p>"
+        )
 
     def createActions(self):
         self.openAct = QAction("&Open...", self, shortcut="Ctrl+O", triggered=self.open)
