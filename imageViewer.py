@@ -1,25 +1,27 @@
+from PIL import Image
 from PyQt5.QtCore import Qt, QPoint, QRect
-
 from PyQt5.QtGui import QImage, QPixmap, QPalette, QPainter, QPen
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from PyQt5.QtWidgets import QLabel, QSizePolicy, QScrollArea, QMessageBox, QMainWindow, QMenu, QAction, \
-    qApp, QFileDialog, QDockWidget, QTextEdit, QListWidget
+    qApp, QFileDialog, QDockWidget, QListWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QWidget
 from numpy import asarray
-from PIL import Image
+
+from calculateDistance import calculate_distance
+from getDelta import get_delta
 
 class QImageViewer(QMainWindow):
     def __init__(self):
         super().__init__()
         self.image = QImage()
         self.imageCopy = QImage()
-        self.imageCopy2 = QImage()
         self.printer = QPrinter()
         self.scaleFactor = 0.0
         self.painter = QPainter()
 
-        pixels = asarray(Image.open('C:/P/cursach_python/assets/left_1.jpg'))
-        print(len(pixels[0]))
-        self.dockWidget = QDockWidget('Dock', self)
+        self.main_img_array = []
+        self.second_img_array = []
+
+        self.dockWidget = QDockWidget('info', self)
 
         self.imageLabel = QLabel()
         self.imageLabel.setBackgroundRole(QPalette.Base)
@@ -35,6 +37,16 @@ class QImageViewer(QMainWindow):
         self.scrollArea.setVisible(False)
 
         self.setCentralWidget(self.scrollArea)
+
+        self.focus_edit = QLineEdit()
+        self.matrix_width = QLineEdit()
+        self.matrix_height = QLineEdit()
+        self.camera_delta = QLineEdit()
+        self.pixel_size = QLineEdit()
+        self.submit_camera = QPushButton('calculate distance')
+        self.distance = QLabel('undefined')
+        self.submit_camera.mousePressEvent = self.mousePressSubmitCamera
+
         self.DockInit()
 
         self.createActions()
@@ -46,8 +58,21 @@ class QImageViewer(QMainWindow):
 
         self.begin, self.destination = QPoint(), QPoint()
 
+        self.pixel_delta = 1
+
+    def mousePressSubmitCamera(self, event) -> None:
+        self.distance.setText(str(calculate_distance(
+            self.camera_delta.text(),
+            self.pixel_delta,
+            self.focus_edit.text(),
+            [
+                self.matrix_width.text(),
+                self.matrix_height.text()
+            ],
+            self.pixel_size.text()
+        )))
+
     def iMousePressEvent(self, event) -> None:
-        print(event.y())
         if event.buttons() & Qt.LeftButton:
             self.begin = event.pos()
             self.destination = self.begin
@@ -59,12 +84,11 @@ class QImageViewer(QMainWindow):
             self.update()
 
     def iMouseReleaseEvent(self, event) -> None:
+        self.pixel_delta = get_delta(self.begin, self.destination, self.main_img_array, self.second_img_array)
         if event.buttons() & Qt.LeftButton:
             self.destination, self.begin = QPoint(), QPoint()
             self.update()
 
-    def getPos(self, event):
-        print(event.y())
 
     def paintEvent(self, event):
         QMainWindow.paintEvent(self, event)
@@ -74,7 +98,7 @@ class QImageViewer(QMainWindow):
             self.pix = QPixmap.fromImage(self.imageCopy)
 
             painter.drawPixmap(QPoint(), self.pix)
-            painter.setPen(QPen(Qt.black, 5, Qt.SolidLine,
+            painter.setPen(QPen(Qt.black, 1, Qt.SolidLine,
                                 Qt.RoundCap, Qt.RoundJoin))
             painter.drawRect(rect.normalized())
         self.imageLabel.setPixmap(QPixmap.fromImage(self.image))
@@ -84,14 +108,17 @@ class QImageViewer(QMainWindow):
         # fileName = QFileDialog.getOpenFileName(self, "Open File", QDir.currentPath())
         self.fileName, _ = QFileDialog.getOpenFileName(self, 'QFileDialog.getOpenFileName()', '',
                                                   'Images (*.png *.jpeg *.jpg *.bmp *.gif)', options=options)
+        self.fileName2, _ = QFileDialog.getOpenFileName(self, 'QFileDialog.getOpenFileName()', '',
+                                                  'Images (*.png *.jpeg *.jpg *.bmp *.gif)', options=options)
         if self.fileName:
             self.image = QImage(self.fileName)
             self.imageCopy = QImage(self.fileName)
-            self.imageCopy2 = QImage(self.fileName)
-            pixels = asarray(Image.open(self.fileName))
+
             self.painter = QPainter(self.image)
 
-            print(pixels)
+            self.main_img_array = asarray(Image.open(self.fileName))
+            self.second_img_array = asarray(Image.open(self.fileName2))
+
             if self.image.isNull():
                 QMessageBox.information(self, "Image Viewer", "Cannot load %s." % self.fileName)
                 return
@@ -139,8 +166,8 @@ class QImageViewer(QMainWindow):
 
     def about(self):
         QMessageBox.about(self, "About Work",
-                          "<p></p>"
-                          "<p></p>")
+          "<p>the work was done by Konstantin Maksimovich Kotov</p>"
+        )
 
     def createActions(self):
         self.openAct = QAction("&Open...", self, shortcut="Ctrl+O", triggered=self.open)
@@ -190,15 +217,53 @@ class QImageViewer(QMainWindow):
         self.zoomInAct.setEnabled(self.scaleFactor < 3.0)
         self.zoomOutAct.setEnabled(self.scaleFactor > 0.333)
     def DockInit(self):
-        listWidget = QListWidget()
-        listWidget.addItem('Google')
-        listWidget.addItem('Facebook')
-        listWidget.addItem('Microsoft')
-        listWidget.addItem('Apple')
+        camera_info_widget = QVBoxLayout()
 
-        self.dockWidget.setWidget(listWidget)
+        focus_widget = QHBoxLayout()
+        focus_label = QLabel('focus 1/f')
+        focus_widget.addWidget(focus_label)
+        focus_widget.addWidget(self.focus_edit)
+
+        matrix_width_widget = QHBoxLayout()
+        matrix_width_label = QLabel('matrix width (mm)')
+        matrix_width_widget.addWidget(matrix_width_label)
+        matrix_width_widget.addWidget(self.matrix_width)
+
+        matrix_height_widget = QHBoxLayout()
+        matrix_height_label = QLabel('matrix height (mm)')
+        matrix_height_widget.addWidget(matrix_height_label)
+        matrix_height_widget.addWidget(self.matrix_height)
+
+        camera_delta_widget = QHBoxLayout()
+        camera_delta_label = QLabel('camera delta (mm)')
+        camera_delta_widget.addWidget(camera_delta_label)
+        camera_delta_widget.addWidget(self.camera_delta)
+
+        pixel_size_widget = QHBoxLayout()
+        pixel_size_label = QLabel('pixel size (mm)')
+        pixel_size_widget.addWidget(pixel_size_label)
+        pixel_size_widget.addWidget(self.pixel_size)
+
+        distance_widget = QHBoxLayout()
+        distance_widget_label = QLabel('distance (mm)')
+        distance_widget.addWidget(distance_widget_label)
+        distance_widget.addWidget(self.distance)
+
+
+        camera_info_widget.addLayout(focus_widget)
+        camera_info_widget.addLayout(matrix_width_widget)
+        camera_info_widget.addLayout(matrix_height_widget)
+        camera_info_widget.addLayout(camera_delta_widget)
+        camera_info_widget.addLayout(pixel_size_widget)
+        camera_info_widget.addLayout(distance_widget)
+        camera_info_widget.addWidget(self.submit_camera)
+
+        dockedWidget = QWidget()
+
+        self.dockWidget.setWidget(dockedWidget)
         self.dockWidget.setFloating(False)
         self.addDockWidget(Qt.RightDockWidgetArea, self.dockWidget)
+        dockedWidget.setLayout(camera_info_widget)
 
     def adjustScrollBar(self, scrollBar, factor):
         scrollBar.setValue(int(factor * scrollBar.value()
