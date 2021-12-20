@@ -4,12 +4,9 @@ import numpy as np
 
 plt.style.use('classic')
 
-fig1, plts1 = plt.subplots()
-plts1.set_title('ssd')
-
-
 def get_delta(point1, point2, main_image, second_image):
-
+    fig1, plts1 = plt.subplots()
+    plts1.set_title('gra ssd')
     delta = 0
     x_offset = 0
     r_ssd = []
@@ -35,8 +32,9 @@ def get_delta(point1, point2, main_image, second_image):
     plts1.plot(np.array(delta_range), np.array(r_ssd), label='red spectral', color='r')
     plts1.plot(np.array(delta_range), np.array(g_ssd), label='green spectral', color='g')
     plts1.plot(np.array(delta_range), np.array(b_ssd), label='blue spectral', color='b')
-
     plts1.legend()
+    plt.xlabel('delta px')
+    plt.xlabel(SSD)
     plt.show()
     print('------------------------------------------delta')
     print(delta)
