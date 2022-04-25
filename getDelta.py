@@ -1,4 +1,5 @@
 from SSD import SSD
+from normalSSD import normalSSD
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -17,12 +18,14 @@ def get_delta(point1, point2, main_image, second_image):
     i_ssd = []
     min_ssd = SSD(main_image[point1.y():point2.y(), point1.x():point2.x()],
                   second_image[point1.y():point2.y(), point1.x():point2.x()])
-    max_offset = 50
+    max_offset = 100
     # max_offset = len(main_image[0]) - point2.x()
     print(max_offset, '-max offset')
     while x_offset < max_offset:
-        new_ssd = SSD(main_image[point1.y():point2.y(), point1.x():point2.x()],
-                      second_image[point1.y():point2.y(), (point1.x() + x_offset):(point2.x() + x_offset)])
+        new_ssd = normalSSD(
+            main_image[point1.y():point2.y(), point1.x():point2.x()],
+            second_image[point1.y():point2.y(), (point1.x() + x_offset):(point2.x() + x_offset)]
+        )
 
         r_ssd.append(new_ssd[0])
         g_ssd.append(new_ssd[1])
