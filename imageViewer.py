@@ -1,12 +1,13 @@
 from PIL import Image
-from PyQt5.QtCore import Qt, QPoint, QRect
+from PyQt5.QtCore import Qt, QPoint, QRect, QLine
 from PyQt5.QtGui import QImage, QPixmap, QPalette, QPainter, QPen
 from PyQt5.QtPrintSupport import QPrintDialog, QPrinter
 from PyQt5.QtWidgets import QLabel, QSizePolicy, QScrollArea, QMessageBox, QMainWindow, QMenu, QAction, \
-    qApp, QFileDialog, QDockWidget, QListWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QWidget
+    qApp, QFileDialog, QDockWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QWidget, QRadioButton
 from numpy import asarray
 
 from calculateDistance import calculate_distance
+from getCombineDelta import get_combune_delta
 from getDelta import get_delta
 
 class QImageViewer(QMainWindow):
@@ -38,6 +39,8 @@ class QImageViewer(QMainWindow):
 
         self.setCentralWidget(self.scrollArea)
 
+        self.distanceRadio = QRadioButton('distance')
+        self.sizeRadio = QRadioButton('size')
         self.focus_edit = QLineEdit()
         self.matrix_width = QLineEdit()
         self.matrix_height = QLineEdit()
@@ -59,18 +62,20 @@ class QImageViewer(QMainWindow):
         self.begin, self.destination = QPoint(), QPoint()
 
         self.pixel_delta = 1
+        self.combine_pixel_delta = 1
 
     def mousePressSubmitCamera(self, event) -> None:
-        self.distance.setText(str(calculate_distance(
-            self.camera_delta.text(),
-            self.pixel_delta,
-            self.focus_edit.text(),
-            [
-                self.matrix_width.text(),
-                self.matrix_height.text()
-            ],
-            self.pixel_size.text()
-        )))
+        if self.distanceRadio.isChecked():
+            self.distance.setText(str(calculate_distance(
+                self.camera_delta.text(),
+                self.pixel_delta,
+                self.focus_edit.text(),
+                [
+                    self.matrix_width.text(),
+                    self.matrix_height.text()
+                ],
+                self.pixel_size.text()
+            )))
 
     def iMousePressEvent(self, event) -> None:
         if event.buttons() & Qt.LeftButton:
@@ -84,7 +89,13 @@ class QImageViewer(QMainWindow):
             self.update()
 
     def iMouseReleaseEvent(self, event) -> None:
-        self.pixel_delta = get_delta(self.begin, self.destination, self.main_img_array, self.second_img_array)
+        if self.distanceRadio.isChecked():
+            self.pixel_delta = get_delta(self.begin, self.destination, self.main_img_array, self.second_img_array)
+        if self.sizeRadio.isChecked():
+            self.combine_pixel_delta = get_combune_delta(
+                self.begin, self.destination,
+                self.main_img_array, self.second_img_array)
+
         if event.buttons() & Qt.LeftButton:
             self.destination, self.begin = QPoint(), QPoint()
             self.update()
@@ -94,13 +105,20 @@ class QImageViewer(QMainWindow):
         QMainWindow.paintEvent(self, event)
         if not self.begin.isNull() and not self.destination.isNull():
             rect = QRect(self.begin, self.destination)
+            line = QLine(self.begin, self.destination)
+
             painter = self.painter
             self.pix = QPixmap.fromImage(self.imageCopy)
 
             painter.drawPixmap(QPoint(), self.pix)
             painter.setPen(QPen(Qt.black, 1, Qt.SolidLine,
                                 Qt.RoundCap, Qt.RoundJoin))
-            painter.drawRect(rect.normalized())
+            if self.distanceRadio.isChecked():
+                painter.drawRect(rect.normalized())
+
+            if self.sizeRadio.isChecked():
+                painter.drawLine(line)
+
         self.imageLabel.setPixmap(QPixmap.fromImage(self.image))
 
     def open(self):
@@ -219,6 +237,13 @@ class QImageViewer(QMainWindow):
     def DockInit(self):
         camera_info_widget = QVBoxLayout()
 
+        mode_widget = QHBoxLayout()
+        mode_label = QLabel('choose application calculate mode')
+        mode_widget.addWidget(mode_label)
+        self.distanceRadio.setChecked(True)
+        mode_widget.addWidget(self.distanceRadio)
+        mode_widget.addWidget(self.sizeRadio)
+
         focus_widget = QHBoxLayout()
         focus_label = QLabel('focus 1/f')
         focus_widget.addWidget(focus_label)
@@ -249,7 +274,7 @@ class QImageViewer(QMainWindow):
         distance_widget.addWidget(distance_widget_label)
         distance_widget.addWidget(self.distance)
 
-
+        camera_info_widget.addLayout(mode_widget)
         camera_info_widget.addLayout(focus_widget)
         camera_info_widget.addLayout(matrix_width_widget)
         camera_info_widget.addLayout(matrix_height_widget)

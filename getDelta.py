@@ -18,7 +18,7 @@ def get_delta(point1, point2, main_image, second_image):
     i_ssd = []
     min_ssd = SSD(main_image[point1.y():point2.y(), point1.x():point2.x()],
                   second_image[point1.y():point2.y(), point1.x():point2.x()])
-    max_offset = 100
+    max_offset = 50
     # max_offset = len(main_image[0]) - point2.x()
     print(max_offset, '-max offset')
     while x_offset < max_offset:
@@ -44,7 +44,7 @@ def get_delta(point1, point2, main_image, second_image):
 
     plts1.legend()
     plt.xlabel('delta px')
-    plt.xlabel(SSD)
+    plt.ylabel('correlation coefficient')
     # plt.imshow(second_image[point1.y():point2.y(), (point1.x() + delta):(point2.x() + delta)], interpolation='nearest')
     plt.show()
     print('------------------------------------------delta')
